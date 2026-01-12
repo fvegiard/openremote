@@ -1,0 +1,64 @@
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+lib/
+lib64/
+Python.exe
+share/
+*/bin/activate
+.project
+.idea/
+.vscode/
+
+# Editor-specific
+.idea/
+.vscode/
+*.swp
+*.bak
+*.swo
+
+# macOS
+.DS_Store
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# dotenv files
+.env
+.env.*
+!.env.example
+
+# Docker
+*.dockerignore
+*.env
+# If you are working in a Python project, it's common to ignore a 'dist' directory.
+# This should be part of a more specific gitignore for Python projects.
+# dist/
+
+# Terraform
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.backup
+
+# Caddy
+caddy.out
+
+# Cloned Repositories (Workspace targets)
+project/
+# Add other cloned repo names below if you change GITHUB_REPO_URL

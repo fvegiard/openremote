@@ -1,0 +1,38 @@
+:80 {
+  encode gzip
+
+  # Security headers (basic)
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy no-referrer
+    Cache-Control "no-store"
+  }
+
+  # ---- Admin area: Dockge (optional) ----
+  handle_path /dockge/* {
+    # Only enable admin auth if ADMIN_AUTH_HASH is set
+    @hasAdminAuth expression `{env.ADMIN_AUTH_HASH} != ""`
+    basicauth @hasAdminAuth {
+      {$ADMIN_AUTH_USER} {$ADMIN_AUTH_HASH}
+    }
+
+    reverse_proxy dockge:5001
+  }
+
+  # ---- Web terminal ----
+  handle_path /term/* {
+    basicauth {
+      {$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+    }
+    reverse_proxy terminal:7681
+  }
+
+  # ---- Default: Oh-My-OpenCode web UI ----
+  handle {
+    basicauth {
+      {$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+    }
+    reverse_proxy ohmyopencode:4096
+  }
+}

@@ -16,6 +16,12 @@ CONFIG_FILE="${CONFIG_DIR}/opencode.json"
 mkdir -p "${CONFIG_DIR}"
 mkdir -p "${OPENCODE_WORKDIR}"
 
+# Allow overriding config from workspace
+if [[ -f "${OPENCODE_WORKDIR}/opencode.json" ]]; then
+  echo "Found custom opencode.json in ${OPENCODE_WORKDIR}, using it."
+  cp "${OPENCODE_WORKDIR}/opencode.json" "${CONFIG_FILE}"
+fi
+
 # Clone repo if GITHUB_REPO_URL is set
 if [[ -n "${GITHUB_REPO_URL:-}" ]]; then
   # Remove any potential Windows carriage returns

@@ -58,8 +58,14 @@ RUN (userdel -r node || true) && \
     (groupdel node || true) && \
     groupadd --gid ${GID} ${USER} && \
     useradd --uid ${UID} --gid ${GID} -m -s /bin/bash ${USER} && \
-    mkdir -p /home/${USER}/.config/opencode && \
+    mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
     chown -R ${UID}:${GID} /home/${USER}
+
+# Copy configuration files (using wildcards to make them optional)
+COPY --chown=${UID}:${GID} opencode_config/auth.json* /home/${USER}/.local/share/opencode/
+COPY --chown=${UID}:${GID} opencode_config/antigravity-accounts.json* /home/${USER}/.config/opencode/
+COPY --chown=${UID}:${GID} opencode_config/oh-my-opencode.json* /home/${USER}/.config/opencode/
+COPY --chown=${UID}:${GID} opencode_config/opencode.json* /home/${USER}/.config/opencode/
 
 WORKDIR /workspace
 

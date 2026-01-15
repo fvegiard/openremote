@@ -67,6 +67,26 @@ cd <YOUR_REPO_DIR>
 cp .env.example .env
 ```
 
+### Configure LLM Providers
+
+This setup supports both local LLMs (via LM Studio, Ollama, etc.) and cloud providers (Anthropic, Gemini, OpenRouter).
+
+Edit your `.env` file to set your API keys and endpoints:
+
+**For Local LLMs (e.g., LM Studio):**
+```bash
+LLM_BASE_URL=http://YOUR_LOCAL_IP:1234/v1
+LLM_MODEL=model-identifier-string
+LLM_API_KEY=lm-studio
+```
+
+**For Cloud Providers:**
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AIza...
+OPENROUTER_API_KEY=sk-or-...
+```
+
 ### Generate a Caddy password hash
 
 Caddy uses **hashed** passwords for `basic_auth`.

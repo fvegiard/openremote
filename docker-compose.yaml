@@ -28,9 +28,20 @@ services:
       # OPENCODE_CORS: "https://code.yourdomain.com"
       GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      # LLM Configuration
+      LLM_MODEL: "${LLM_MODEL}"
+      LLM_BASE_URL: "${LLM_BASE_URL}"
+      LLM_API_KEY: "${LLM_API_KEY}"
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      # Cloud Providers
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
+      # MCP keys
+      CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
     volumes:
-      - ./:/workspace
-      - ohmyopencode-config:/home/dev/.config/opencode
+      - ./workspace:/workspace
     command: ["opencode-web"]
     networks:
       - internal
@@ -42,8 +53,7 @@ services:
       GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
     volumes:
-      - ./:/workspace
-      - ohmyopencode-config:/home/dev/.config/opencode
+      - ./workspace:/workspace
     command: ["ttyd", "-p", "7681", "-i", "0.0.0.0", "-W", "bash", "-lc", "cd /workspace && exec bash"]
     networks:
       - internal
@@ -99,7 +109,6 @@ services:
     command: ["sleep", "infinity"]
     volumes:
       - ./:/workspace
-      - ohmyopencode-config:/home/dev/.config/opencode
     networks:
       - internal
 

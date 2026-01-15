@@ -60,5 +60,7 @@ share/
 caddy.out
 
 # Cloned Repositories (Workspace targets)
-project/
+workspace/
+# opencode config 
+opencode_config/
 # Add other cloned repo names below if you change GITHUB_REPO_URL

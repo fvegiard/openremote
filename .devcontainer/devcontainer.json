@@ -1,5 +1,5 @@
 {
-  "name": "Oh-My-OpenCode (TanStack)",
+  "name": "Oh-My-OpenCode",
   "dockerComposeFile": ["../docker-compose.yaml"],
   "service": "devcontainer",
   "workspaceFolder": "/workspace",

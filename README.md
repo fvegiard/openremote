@@ -44,13 +44,16 @@ A self-hosted, **OpenCode server with the Oh-My-OpenCode harness**, pre-configur
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── README.md
-├── opencode_config/           # Your config files (copied into container)
+├── dotfiles/                  # Editor configs (tracked in git)
+│   └── nvim/                  # Neovim config (run scripts/copy_nvim_config.sh)
+├── opencode_config/           # Your config files (gitignored, contains secrets)
 │   ├── opencode.json
 │   ├── oh-my-opencode.json
 │   └── auth.json
 ├── opencode_config_example/   # Example configurations
 ├── scripts/
 │   ├── entrypoint.sh
+│   ├── copy_nvim_config.sh    # Copy local nvim config to dotfiles/
 │   └── ralph.sh               # Ralph Wiggum autonomous loop
 └── workspace/                 # Mounted into container at /workspace
 ```
@@ -103,15 +106,29 @@ OPENROUTER_API_KEY=sk-or-...
 To enable SSH access to the container, add your public key to `.env`:
 
 ```bash
-SSH_PUBLIC_KEY="ssh-ed25519 AAAAC3... your@email.com"
+SSH_PUBLIC_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your@email.com"
 ```
 
-You can get your public key with:
+**Multiple devices (up to 5 or more):** Separate keys with `|` (pipe):
+```bash
+SSH_PUBLIC_KEY="ssh-ed25519 AAAA... laptop@email.com|ssh-ed25519 BBBB... phone@email.com|ssh-rsa CCCC... tablet@email.com"
+```
+
+**Get your existing public key:**
 ```bash
 cat ~/.ssh/id_ed25519.pub
-# or
+# or for RSA keys:
 cat ~/.ssh/id_rsa.pub
 ```
+
+**Generate a new key if you don't have one:**
+```bash
+ssh-keygen -t ed25519 -C "your@email.com"
+# Then copy the public key:
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy the entire output (starting with `ssh-ed25519` or `ssh-rsa`) and paste it as the value of `SSH_PUBLIC_KEY` in your `.env` file.
 
 ### Generate a Caddy password hash
 
@@ -364,6 +381,33 @@ In **Zero Trust → Access → Applications**:
 * Connect via local SSH or Cloudflare tunnel (see section 3)
 * Use your preferred editor (vim, nvim, etc.)
 * Full terminal access as `dev` user
+
+### Neovim and tmux
+
+The container includes **neovim** (nightly) and **tmux** pre-installed.
+
+**Copy your local nvim config into the project:**
+```bash
+./scripts/copy_nvim_config.sh
+docker compose up -d --build
+```
+
+This copies `~/.config/nvim` to `dotfiles/nvim/` (tracked in git) and bakes it into the image.
+
+**First run:** If your neovim uses a plugin manager (lazy.nvim, packer, etc.), plugins will be installed on first launch.
+
+**To use a tmux session:**
+```bash
+ssh opencode-local
+tmux new -s dev
+nvim .
+```
+
+**To add tmux config**, copy it similarly:
+```bash
+cp ~/.tmux.conf opencode_config/tmux.conf
+```
+Then update the Dockerfile to copy it.
 
 ### Running dev server / tests
 

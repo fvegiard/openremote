@@ -9,7 +9,7 @@ if [ "$(id -u)" = "0" ]; then
     
     # Re-exec the script as the 'dev' user
     echo "Switching to user 'dev'..."
-    exec sudo -E -u dev "$0" "$@"
+    exec sudo -E -u dev HOME=/home/dev "$0" "$@"
 fi
 
 # Defaults
@@ -19,13 +19,16 @@ fi
 : "${OPENCODE_WORKDIR:=/workspace}"
 : "${SSH_PUBLIC_KEY:=}"
 
-# Setup SSH access if key provided
+# Setup SSH access if key(s) provided
+# Supports multiple keys separated by | (pipe) character
 if [[ -n "${SSH_PUBLIC_KEY}" ]]; then
   echo "Setting up SSH authorized keys..."
   mkdir -p "${HOME}/.ssh"
   chmod 700 "${HOME}/.ssh"
-  echo "${SSH_PUBLIC_KEY}" > "${HOME}/.ssh/authorized_keys"
+  # Replace | with newlines to support multiple keys
+  echo "${SSH_PUBLIC_KEY}" | tr '|' '\n' > "${HOME}/.ssh/authorized_keys"
   chmod 600 "${HOME}/.ssh/authorized_keys"
+  echo "Added $(grep -c '^ssh-' "${HOME}/.ssh/authorized_keys") SSH key(s)"
 fi
 
 # Prevent "open browser" attempts in headless environments

@@ -13,7 +13,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git openssh-client openssh-server sudo bash zsh tini \
       ripgrep jq unzip \
       python3 python3-venv make g++ \
+      tmux \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Neovim (nightly has ARM64 support, stable doesn't)
+RUN set -eux; \
+  case "$TARGETARCH" in \
+    amd64) NVIM_ARCH="linux-x86_64" ;; \
+    arm64) NVIM_ARCH="linux-arm64" ;; \
+    *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
+  esac; \
+  curl -fsSL -o /tmp/nvim.tar.gz "https://github.com/neovim/neovim/releases/download/nightly/nvim-${NVIM_ARCH}.tar.gz"; \
+  tar -xzf /tmp/nvim.tar.gz -C /opt; \
+  ln -s /opt/nvim-${NVIM_ARCH}/bin/nvim /usr/local/bin/nvim; \
+  rm /tmp/nvim.tar.gz; \
+  nvim --version
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
@@ -72,6 +86,9 @@ COPY --chown=${UID}:${GID} opencode_config/auth.json* /home/${USER}/.local/share
 COPY --chown=${UID}:${GID} opencode_config/antigravity-accounts.json* /home/${USER}/.config/opencode/
 COPY --chown=${UID}:${GID} opencode_config/oh-my-opencode.json* /home/${USER}/.config/opencode/
 COPY --chown=${UID}:${GID} opencode_config/opencode.json* /home/${USER}/.config/opencode/
+
+# Copy nvim config if present (run scripts/copy_nvim_config.sh first to populate)
+COPY --chown=${UID}:${GID} dotfiles/nvim/ /home/${USER}/.config/nvim/
 
 WORKDIR /workspace
 

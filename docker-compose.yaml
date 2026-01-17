@@ -21,6 +21,8 @@ services:
   # Oh-My-OpenCode web UI server (headless)
   ohmyopencode:
     build: .
+    ports:
+      - "2222:22"  # SSH access
     environment:
       OPENCODE_HOST: "0.0.0.0"
       OPENCODE_PORT: "4096"

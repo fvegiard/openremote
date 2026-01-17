@@ -10,7 +10,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git openssh-client bash zsh tini \
+      ca-certificates curl git openssh-client openssh-server sudo bash zsh tini \
       ripgrep jq unzip \
       python3 python3-venv make g++ \
     && rm -rf /var/lib/apt/lists/*
@@ -61,6 +61,9 @@ RUN (userdel -r node || true) && \
     (groupdel node || true) && \
     groupadd --gid ${GID} ${USER} && \
     useradd --uid ${UID} --gid ${GID} -m -s /bin/bash ${USER} && \
+    echo "${USER}:opencode" | chpasswd && \
+    usermod -aG sudo ${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
     chown -R ${UID}:${GID} /home/${USER}
 
@@ -80,15 +83,14 @@ RUN chmod +x /usr/local/bin/*.sh
 ENV BUN_INSTALL=/home/${USER}/.bun
 ENV PATH=${BUN_INSTALL}/bin:/home/${USER}/.local/bin:${PATH}
 
-USER ${USER}
-
 # Pre-install oh-my-opencode with bun to ensure it's available and bun works
-RUN bun install -g oh-my-opencode
+# Run as user to install into user's home
+RUN sudo -u ${USER} bash -c "export BUN_INSTALL=/home/${USER}/.bun && export PATH=\$BUN_INSTALL/bin:\$PATH && bun install -g oh-my-opencode"
 
 # Install spec-kit (specify-cli)
-RUN uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+RUN sudo -u ${USER} bash -c "export PATH=/home/${USER}/.local/bin:\$PATH && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git"
 
-EXPOSE 4096
+EXPOSE 4096 22
 
 ENTRYPOINT ["/usr/bin/tini","--","/usr/local/bin/entrypoint.sh"]
 CMD ["opencode-web"]

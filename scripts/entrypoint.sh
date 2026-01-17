@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# If running as root, start sshd and drop privileges
+if [ "$(id -u)" = "0" ]; then
+    echo "Starting SSH server..."
+    mkdir -p /run/sshd
+    /usr/sbin/sshd
+    
+    # Re-exec the script as the 'dev' user
+    echo "Switching to user 'dev'..."
+    exec sudo -E -u dev "$0" "$@"
+fi
+
 # Defaults
 : "${OPENCODE_HOST:=0.0.0.0}"
 : "${OPENCODE_PORT:=4096}"
 : "${OPENCODE_CORS:=}"           # comma-separated list, e.g. "https://your.domain,https://another.domain"
 : "${OPENCODE_WORKDIR:=/workspace}"
+: "${SSH_PUBLIC_KEY:=}"
+
+# Setup SSH access if key provided
+if [[ -n "${SSH_PUBLIC_KEY}" ]]; then
+  echo "Setting up SSH authorized keys..."
+  mkdir -p "${HOME}/.ssh"
+  chmod 700 "${HOME}/.ssh"
+  echo "${SSH_PUBLIC_KEY}" > "${HOME}/.ssh/authorized_keys"
+  chmod 600 "${HOME}/.ssh/authorized_keys"
+fi
 
 # Prevent "open browser" attempts in headless environments
 export BROWSER="${BROWSER:-/usr/bin/true}"

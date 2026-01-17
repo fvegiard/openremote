@@ -40,6 +40,8 @@ services:
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
       # MCP keys
       CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
+      # SSH Access
+      SSH_PUBLIC_KEY: "${SSH_PUBLIC_KEY}"
     volumes:
       - ./workspace:/workspace
     command: ["opencode-web"]

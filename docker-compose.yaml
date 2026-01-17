@@ -1,5 +1,5 @@
 services:
-  # Reverse proxy w/ Basic Auth in front of everything
+  # Reverse proxy w/ Basic Auth for Vite frontend
   proxy:
     image: caddy:2
     ports:
@@ -7,27 +7,22 @@ services:
     environment:
       BASIC_AUTH_USER: "${BASIC_AUTH_USER}"
       BASIC_AUTH_HASH: "${BASIC_AUTH_HASH}"
-      ADMIN_AUTH_USER: "${ADMIN_AUTH_USER:-admin}"
-      ADMIN_AUTH_HASH: "${ADMIN_AUTH_HASH:-}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       - ohmyopencode
-      - terminal
     networks:
       - edge
       - internal
 
-  # Oh-My-OpenCode web UI server (headless)
+  # Dev container with SSH access and exposed vite dev frontend
   ohmyopencode:
     build: .
     ports:
       - "2222:22"  # SSH access
+    expose:
+      - "5173"     # Vite dev server (accessed via proxy, not exposed to host)
     environment:
-      OPENCODE_HOST: "0.0.0.0"
-      OPENCODE_PORT: "4096"
-      # Set this to your Cloudflare hostname (or leave empty if same-origin only)
-      # OPENCODE_CORS: "https://code.yourdomain.com"
       GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
       # LLM Configuration
@@ -46,52 +41,7 @@ services:
       SSH_PUBLIC_KEY: "${SSH_PUBLIC_KEY}"
     volumes:
       - ./workspace:/workspace
-    command: ["opencode-web"]
-    networks:
-      - internal
-
-  # Web terminal (ttyd) in the same image/toolchain
-  terminal:
-    build: .
-    environment:
-      GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
-      GITHUB_TOKEN: "${GITHUB_TOKEN}"
-    volumes:
-      - ./workspace:/workspace
-    command: ["ttyd", "-p", "7681", "-i", "0.0.0.0", "-W", "bash", "-lc", "cd /workspace && exec bash"]
-    networks:
-      - internal
-
-  # Docker socket proxy for enhanced security
-  socket-proxy:
-    image: fluencelabs/docker-socket-proxy:1.1.0
-    profiles: ["admin"]
-    environment:
-      - "LOG_LEVEL=info"
-      # Grant access to all GET requests
-      - "ALLOW_GET=1"
-      # Grant access to events, used by Dockge to monitor container status
-      - "EVENTS=1"
-      # Grant access to specific POST requests required by Dockge
-      - "POST=/containers/create,/containers/prune,/containers/start,/containers/stop,/containers/restart,/networks/create,/networks/prune,/volumes/create,/volumes/prune,/build"
-      # Grant access to specific DELETE requests
-      - "DELETE=/containers/(id),/networks/(id),/volumes/(id)"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - internal
-
-  # Optional: "recreate / manage compose from web" (VERY powerful)
-  # Dockge features include stack mgmt + web terminal. :contentReference[oaicite:0]{index=0}
-  dockge:
-    image: louislam/dockge:latest
-    profiles: ["admin"]
-    environment:
-      DOCKGE_STACKS_DIR: /opt/stacks
-      DOCKER_HOST: tcp://socket-proxy:2375
-    volumes:
-      - dockge-data:/app/data
-      - dockge-stacks:/opt/stacks
+    command: ["sleep", "infinity"]
     networks:
       - internal
 
@@ -126,5 +76,3 @@ networks:
 
 volumes:
   ohmyopencode-config: {}
-  dockge-data: {}
-  dockge-stacks: {}

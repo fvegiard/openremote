@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./opencode_config/**)",
+      "Read(./workspace/project/**)"
+    ]
+  }
+}

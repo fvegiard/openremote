@@ -5,6 +5,11 @@ set -euo pipefail
 if [ "$(id -u)" = "0" ]; then
     echo "Starting SSH server..."
     mkdir -p /run/sshd
+    
+    # Export Docker env vars to /etc/environment so SSH sessions (pam_env) can see them
+    # We only export specific variables defined in docker-compose.yaml
+    printenv | grep -E '^(GITHUB_REPO_URL|GITHUB_TOKEN|LLM_MODEL|LLM_BASE_URL|LLM_API_KEY|OPENAI_BASE_URL|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|OPENROUTER_API_KEY|CONTEXT7_API_KEY|SSH_PUBLIC_KEY|RALPH_SLACK_WEBHOOK_URL)=' >> /etc/environment || true
+    
     /usr/sbin/sshd
     
     # Re-exec the script as the 'dev' user

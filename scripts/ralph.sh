@@ -77,10 +77,10 @@ You are running inside an autonomous loop.
 Rules for THIS iteration:
 1) Execute exactly one small, coherent chunk of implementation via /speckit.implement.
 2) Run feedback loops (types/tests/lint) as needed.
-3) Make a git commit for the work you did (single focused commit).
+3) Stage and commit to git work you did (single focused commit).
 
-ONLY WORK ON A SINGLE TASK PER ITERATION.
-If everything is complete, output: <promise>COMPLETE</promise>
+ONLY WORK ON A SINGLE SPEKKIT TASK PER ITERATION.
+If all the tasks from spekkit are finished and there no tasks to start, output: <promise>COMPLETE</promise>
 EOF
 )
 
@@ -90,10 +90,8 @@ for ((i=1; i<=ITERATIONS; i++)); do
   echo
   notify "----- Iteration $i / $ITERATIONS -----"
 
-  set +e
   output="$(run_opencode_once)"
   status=$?
-  set -e
 
   echo "$output"
 

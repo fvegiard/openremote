@@ -311,7 +311,7 @@ opencode run "/speckit.plan {describe technical plan and spec}"
 opencode run "/speckit.tasks"
 
 # Execute tasks implementation withing Ralph Wiggum loop
-ralph -i=<max-iterations>
+ralph.sh -i=<max-iterations>
 
 # Repeat from /speckit.specify
 ```

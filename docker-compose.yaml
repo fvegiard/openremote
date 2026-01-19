@@ -40,6 +40,7 @@ services:
       CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
       # SSH Access
       SSH_PUBLIC_KEY: "${SSH_PUBLIC_KEY}"
+      RALPH_SLACK_WEBHOOK_URL: "${RALPH_SLACK_WEBHOOK_URL}"
     volumes:
       - ./workspace:/workspace
     command: ["sleep", "infinity"]

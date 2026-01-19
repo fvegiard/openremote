@@ -1,16 +1,19 @@
 # Oh-My-OpenCode local — secure SSH-based remote dev environment
 
-A self-hosted Docker setup for running **OpenCode with Oh-My-OpenCode harness**, accessible via **SSH** (with dev web UI for Vite). Features:
+A self-hosted Docker setup for running **OpenCode with Oh-My-OpenCode harness**
+Features:
 
-- **SSH access** to dev container with all coding tools
+- **SSH access** to dev container with all coding tools (tmux, nvim)
 - **Vite dev server frontend** exposed via reverse proxy with Basic Auth (port 5173)
 - **Multi-agent orchestration** (via Oh-My-OpenCode)
 - **Multi-Antigravity and Gemini accounts support** (via opencode-antigravity-auth)
-- **spec-kit** support for Spec-Driven Development
-- **Ralph Wiggum Autonomous Loop** for AI coding
+- **Github Spec Kit** support for Spec-Driven Development
+- **Ralph Wiggum Autonomous Loop** for /speckit.implement command
 - Optional **Cloudflare Tunnel** for public access without opening inbound ports
 
-> Goal: run on a home **PC/Mac** (Docker Desktop), connect via SSH, and expose only the Vite dev frontend for testing.
+> Goal: run on a home **PC/Mac** (Docker Desktop), connect from a laptop or phone via SSH, and expose only the Vite dev frontend for testing.
+
+Feel free to fork and customize everything.
 
 ---
 
@@ -37,9 +40,6 @@ A self-hosted Docker setup for running **OpenCode with Oh-My-OpenCode harness**,
 ├── dotfiles/                  # Editor configs (tracked in git)
 │   └── nvim/                  # Neovim config (run scripts/copy_nvim_config.sh)
 ├── opencode_config/           # Your config files (gitignored, contains secrets)
-│   ├── opencode.json
-│   ├── oh-my-opencode.json
-│   └── auth.json
 ├── opencode_config_example/   # Example configurations
 ├── scripts/
 │   ├── entrypoint.sh
@@ -56,7 +56,7 @@ A self-hosted Docker setup for running **OpenCode with Oh-My-OpenCode harness**,
 - Docker (Docker Desktop on macOS)
 
 ### Recommended
-- A domain in Cloudflare with **Cloudflare Zero Trust** (for global SSH access and Vite frontend via **Cloudflare Tunnel** + **Cloudflare Access** MFA/SSO)
+- A domain in Cloudflare for global SSH access and Vite frontend via **Cloudflare Tunnel**
 
 ---
 
@@ -116,6 +116,22 @@ BASIC_AUTH_USER=aleksei
 BASIC_AUTH_HASH=$2a$14$...paste_hash_here...
 ```
 
+### Copy local opencode config
+
+If you want to copy your local opencode convig with auth keys (for example for opencode-antigravity-auth) - copy them with
+
+```bash
+bash scripts/copy_opencode_config.sh
+```
+
+### Copy local nvim config
+
+If you want to use your local nvim setup
+
+```bash
+bash scripts/copy_nvim_config.sh
+```
+
 ---
 
 ## 2) Build and run
@@ -127,7 +143,7 @@ docker compose up -d --build
 ### Access
 
 * **SSH:** `ssh -p 2222 dev@localhost`
-* **Vite frontend:** http://localhost:8080 (requires Basic Auth)
+* **Vite frontend:** http://localhost:8080 (requires Basic Auth and running dev server in the container in the port 5173) 
 
 Stop:
 
@@ -142,6 +158,7 @@ docker compose down
 ### Local SSH Access
 
 ```bash
+# if you recreated the container - you might want to clean local ssh keys
 # ssh-keygen -R "[localhost]:2222"
 ssh -p 2222 dev@localhost
 ```
@@ -225,23 +242,9 @@ In the tunnel settings, go to **Public Hostname** tab and add:
 * **Service Type:** `SSH`
 * **URL:** `ohmyopencode:22`
 
-### Step 4: Protect with Cloudflare Access (strongly recommended)
+### Step 4: Access Globally
 
-1. Go to **Access** → **Applications** → **Add an application**
-2. Select **Self-hosted**
-3. Add both hostnames (`dev.yourdomain.com` and `ssh.yourdomain.com`)
-4. Create a policy requiring your email or identity provider
-5. Enable MFA for additional security
-
-### Step 5: Start the Stack
-
-```bash
-docker compose --profile tunnel up -d --build
-```
-
-### Step 6: Access Globally
-
-* **Vite frontend:** https://dev.yourdomain.com (with Basic Auth + Cloudflare Access)
+* **Vite frontend:** https://dev.yourdomain.com (with Basic Auth)
 * **SSH:** `ssh ssh.yourdomain.com` (requires `cloudflared` on client, see Section 3)
 
 ---
@@ -251,7 +254,7 @@ docker compose --profile tunnel up -d --build
 ### Working via SSH
 
 1. Connect: `ssh opencode-local`
-2. Work in `/workspace` (your repo is mounted there)
+2. Work in `/workspace/project` (your repo is mounted there)
 3. Run OpenCode CLI, use neovim, or any terminal tools
 
 ### Running the Vite dev server
@@ -259,11 +262,12 @@ docker compose --profile tunnel up -d --build
 From SSH:
 ```bash
 cd /workspace/project
-pnpm install
-pnpm dev --host 0.0.0.0
+# example for Vite project
+# pnpm install
+# pnpm dev --host 0.0.0.0
 ```
 
-The Vite frontend is now accessible at http://localhost:8080 (with Basic Auth).
+The Vite frontend is now accessible at http://localhost:8080 and https://dev.yourdomain.com (with Basic Auth). 
 
 ### Neovim and tmux
 
@@ -278,17 +282,43 @@ docker compose up -d --build
 **Using tmux:**
 ```bash
 ssh opencode-local
+cd /workspace/project
 tmux new -s dev
 nvim .
 ```
 
-### Ralph Wiggum Autonomous Loop
+### Ralph Wiggum Autonomous Loop with Spec Kit
+
+https://speckit.org/
 
 ```bash
-./scripts/ralph.sh <iterations>
+ssh opencode-local
+cd /workspace/project
+
+# Init Spec Kit
+specify init . --ai opencode
+
+# Establish project principles
+opencode /speckit.constitution "{your project's governing principles and development guidelines}"
+
+# Create Specification
+opencode /speckit.specify "{describe what you want to build}"
+
+# Create technical plans
+opencode /speckit.plan "{describe technical plan and spec}"
+
+# Generate tasks
+opencode /speckit.tasks
+
+# Execute tasks implementation withing Ralph Wiggum loop
+ralph -i=<max-iterations>
+
+# Repeat from /speckit.specify
 ```
 
-Requires `PLAN.txt` and `RALPH_PROGRESS.txt` in `/workspace/project/`.
+*Optional Slak integration*
+
+If you want to get notifications on Ralph Wiggum iterations add Slack webhook URL to `RALPH_SLACK_WEBHOOK_URL` in `.env`
 
 ---
 
@@ -304,10 +334,12 @@ This uses `.devcontainer/devcontainer.json` and attaches to the `devcontainer` s
 
 ## Configuration notes
 
+Feel free to fork and customize everything.
+
 ### Non-root containers
 
 * All containers run as user `dev` from the Dockerfile.
-* Proxy (Caddy) listens on port `80` inside its container.
+* Proxy (Caddy) listens on port `5173` inside its container.
 
 ### Permissions for running shell commands
 
@@ -350,6 +382,11 @@ git pull
 docker compose up -d --build
 ```
 
+---
+
+## License
+
+This project is licensed under the terms of the MIT open source license. Please refer to the LICENSE file for the full terms.
 ---
 
 ## References

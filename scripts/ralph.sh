@@ -1,50 +1,116 @@
 #!/usr/bin/env bash
-# Ralph Wiggum Autonomous Loop for AI Coding
+# Ralph Wiggum Autonomous Loop for AI Coding implemented to run with Github Spec Kit
 # Inspired by: https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum
 
 set -e
 
-PLAN_FILE="/workspace/project/PLAN.txt"
-PROGRESS_FILE="/workspace/project/RALPH_PROGRESS.txt"
+run_opencode_once() {
+  local out status
+    out="$(opencode run "$PROMPT" 2>&1)"
+    status=$?
 
-if [[ ! -f "$PLAN_FILE" ]]; then
-    echo "Progress file is missing: $PLAN_FILE"
-    exit 0
-fi
+  printf '%s' "$out"
+  return "$status"
+}
 
-if [[ ! -f "$PROGRESS_FILE" ]]; then
-    echo "Progress file is missing: $PROGRESS_FILE"
-    exit 0
-fi
+notify() {
+  local text="$1" # First argument
+  echo $text
+  if [ -z "${RALPH_SLACK_WEBHOOK_URL}" ]; then
+    echo "RALPH_SLACK_WEBHOOK_URL is not set. Skipping slack webhook."
+  else
+    curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$text\"}" "${RALPH_SLACK_WEBHOOK_URL}"  || true
+  fi
+}
 
-echo "--- Ralph Wiggum Loop Started ---"
+ITERATIONS=""
 
-set -e
+# accept -i=1 or --iterations=1 (also easy to extend)
+for arg in "$@"; do
+  case "$arg" in
+    -i=*|--iterations=*)
+      ITERATIONS="${arg#*=}"
+      ;;
+  esac
+done
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 <iterations>"
+if [[ -z "$ITERATIONS" || ! "$ITERATIONS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Usage: $0 -i=<iterations>  (positive integer)" >&2
   exit 1
 fi
 
-# For each iteration, run Opencode with the following prompt.
-# This prompt is basic, we'll expand it later.
-for ((i=1; i<=$1; i++)); do
-  opencode run "@$PLAN_FILE @$PROGRESS_FILE \
-1. Decide which task to work on next. \
-This should be the one YOU decide has the highest priority, \
-- not necessarily the first in the list. \
-2. Check any feedback loops, such as types and tests. \
-3. Append your progress to the $PROGRESS_FILE file. \
-4. Make a git commit of that feature. \
-ONLY WORK ON A SINGLE FEATURE. \
-If, while implementing the feature, you notice that all work \
-is complete, output <promise>COMPLETE</promise>. \
-")
+notify "--- Ralph Wiggum Loop for Github Opencode Spec Kit Started ---"
 
-  echo "$result"
+# TODO: this needs to be improved
+# is_limit_or_quota_error() {
+#  # Heuristics across providers + common OpenCode error surfaces.
+#  # Only call this when opencode exits non-zero (or you explicitly want to treat output as an error).
+#  local text="$1"
+#
+#  shopt -s nocasematch
+#  if [[ "$text" == *"rate limit"* ]] || [[ "$text" == *"rate_limit"* ]] || [[ "$text" == *"too many requests"* ]] || [[ "$text" == *"429"* ]] || [[ "$text" == *"exceed the rate limit"* ]]; then
+#    shopt -u nocasematch
+#    return 0
+#  fi
+#
+#  if [[ "$text" == *"insufficient_quota"* ]] || [[ "$text" == *"quota"* && "$text" == *"exceeded"* ]] || [[ "$text" == *"billing"* ]]; then
+#    shopt -u nocasematch
+#    return 0
+#  fi
+#
+#  # “Out of tokens” / context-length-ish failures (providers phrase this differently)
+#  if [[ "$text" == *"out of tokens"* ]] || [[ "$text" == *"token limit"* ]] || [[ "$text" == *"maximum context"* ]] || [[ "$text" == *"context length"* ]]; then
+#    shopt -u nocasematch
+#    return 0
+#  fi
+#
+#  shopt -u nocasematch
+#  return 1
+#}
 
-  if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
-    echo "PRD complete, exiting."
+PROMPT=$(
+  cat <<EOF
+/speckit.implement
+
+You are running inside an autonomous loop.
+
+Rules for THIS iteration:
+1) Execute exactly one small, coherent chunk of implementation via /speckit.implement.
+2) Run feedback loops (types/tests/lint) as needed.
+3) Make a git commit for the work you did (single focused commit).
+
+ONLY WORK ON A SINGLE TASK PER ITERATION.
+If everything is complete, output: <promise>COMPLETE</promise>
+EOF
+)
+
+cd /workspace/project
+
+for ((i=1; i<=ITERATIONS; i++)); do
+  echo
+  notify "----- Iteration $i / $ITERATIONS -----"
+
+  set +e
+  output="$(run_opencode_once)"
+  status=$?
+  set -e
+
+  echo "$output"
+
+  if [[ $status -ne 0 ]]; then
+#    if is_limit_or_quota_error "$output"; then
+#      echo "OpenCode hit a rate limit / quota / token limit. Exiting Ralph loop."
+#      exit 0
+#    fi
+
+    notify "OpenCode failed (exit=$status). Exiting."
+    exit "$status"
+  fi
+
+  if [[ "$output" == *"<promise>COMPLETE</promise>"* ]]; then
+    notify "PRD complete, exiting."
     exit 0
   fi
 done
+
+notify "Reached iteration limit ($ITERATIONS). Exiting."

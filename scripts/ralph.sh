@@ -4,15 +4,6 @@
 
 set -e
 
-run_opencode_once() {
-  local out status
-    out="$(opencode run "$PROMPT" 2>&1)"
-    status=$?
-
-  printf '%s' "$out"
-  return "$status"
-}
-
 notify() {
   local text="$1" # First argument
   echo $text
@@ -72,14 +63,13 @@ PROMPT=$(
   cat <<EOF
 /speckit.implement
 
-You are running inside an autonomous loop.
+Rules for the implementation run :
+1) Execute exactly one task from speckit tasks list. If there are no tasks to start, output: <promise>COMPLETE</promise>
+2) Run feedback loops (types/tests/lint) as needed. If you encounter an error, fix it. 
+3) Stage and commit to git work you did (single focused commit). Review the code before committing.
+6) When one task is done, or if there are no tasks to start, stop and exit.
 
-Rules for THIS iteration:
-1) Execute exactly one small, coherent chunk of implementation via /speckit.implement.
-2) Run feedback loops (types/tests/lint) as needed.
-3) Stage and commit to git work you did (single focused commit).
-
-ONLY WORK ON A SINGLE SPEKKIT TASK PER ITERATION.
+ONLY WORK ON A SINGLE SPEKKIT TASK.
 If all the tasks from spekkit are finished and there no tasks to start, output: <promise>COMPLETE</promise>
 EOF
 )
@@ -90,10 +80,13 @@ for ((i=1; i<=ITERATIONS; i++)); do
   echo
   notify "----- Iteration $i / $ITERATIONS -----"
 
-  output="$(run_opencode_once)"
-  status=$?
-
-  echo "$output"
+  # Capture output to a temporary file while showing it in real-time.
+  # PIPESTATUS[0] captures the exit code of opencode (the first command in the pipe).
+  tmp_log=$(mktemp -t ralph_output.XXXXXX)
+  opencode run "$PROMPT" 2>&1 | tee "$tmp_log"
+  status=${PIPESTATUS[0]}
+  output=$(cat "$tmp_log")
+  rm "$tmp_log"
 
   if [[ $status -ne 0 ]]; then
 #    if is_limit_or_quota_error "$output"; then

@@ -3,28 +3,28 @@
   "google_auth": false,
   "agents": {
     "Sisyphus": {
-      "model": "zai-coding-plan/glm-4.7"
+      "model": "google/antigravity-claude-sonnet-4-5"
     },
     "Planner-Sisyphus": {
-      "model": "zai-coding-plan/glm-4.7"
+      "model": "google/antigravity-claude-sonnet-4-5"
     },
     "librarian": {
-      "model": "zai-coding-plan/glm-4.7-flash"
+      "model": "opencode/glm-4.7-free"
     },
     "explore": {
-      "model": "zai-coding-plan/glm-4.7-flash"
+      "model": "google/gemini-3-flash"
     },
     "oracle": {
-      "model": "zai-coding-plan/glm-4.7"
+      "model": "google/gemini-3-pro-high"
     },
     "frontend-ui-ux-engineer": {
-      "model": "zai-coding-plan/glm-4.7"
+      "model": "google/gemini-3-pro-high"
     },
     "document-writer": {
-      "model": "zai-coding-plan/glm-4.7-flash"
+      "model": "google/gemini-3-flash"
     },
     "multimodal-looker": {
-      "model": "zai-coding-plan/glm-4.7-flash"
+      "model": "google/gemini-3-flash"
     }
   }
 }

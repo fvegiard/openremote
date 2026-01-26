@@ -4,14 +4,14 @@ A self-hosted Docker setup for running **OpenCode with Oh-My-OpenCode harness**
 Features:
 
 - **SSH access** to dev container with all coding tools (tmux, nvim)
-- **Vite dev server frontend** exposed via reverse proxy with Basic Auth (port 5173)
+- **Vite dev server frontend** exposed directly (port 5173)
 - **Multi-agent orchestration** (via Oh-My-OpenCode)
 - **Multi-Antigravity and Gemini accounts support** (via opencode-antigravity-auth)
 - **Github Spec Kit** support for Spec-Driven Development
 - **Ralph Wiggum Autonomous Loop** for /speckit.implement command
-- Optional **Cloudflare Tunnel** for public access without opening inbound ports
+- Designed for use behind **Tailscale VPN** for secure remote access
 
-> Goal: run on a home **PC/Mac** (Docker Desktop), connect from a laptop or phone via SSH, and expose only the Vite dev frontend for testing.
+> Goal: run on a home **PC/Mac** (Docker Desktop), connect from a laptop or phone via SSH through Tailscale VPN.
 
 Feel free to fork and customize everything.
 
@@ -19,9 +19,9 @@ Feel free to fork and customize everything.
 
 ## Security principles
 
-1. **Vite frontend only** — exposed with Basic Auth for development testing
+1. **Tailscale VPN** — all access is through your private Tailnet
 2. **Non-root containers** — all containers run as non-root user (`dev`)
-3. **Minimal attack surface** — only SSH and Vite frontend are exposed
+3. **Minimal attack surface** — only SSH and dev server ports exposed to host
 
 ---
 
@@ -33,7 +33,6 @@ Feel free to fork and customize everything.
 │   └── devcontainer.json
 ├── .env.example
 ├── .gitignore
-├── Caddyfile
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── README.md
@@ -54,9 +53,7 @@ Feel free to fork and customize everything.
 
 ### Required
 - Docker (Docker Desktop on macOS)
-
-### Recommended
-- A domain in Cloudflare for global SSH access and Vite frontend via **Cloudflare Tunnel**
+- Tailscale installed on host machine
 
 ---
 
@@ -103,22 +100,9 @@ SSH_PUBLIC_KEY="ssh-ed25519 AAAA... laptop|ssh-ed25519 BBBB... phone"
 cat ~/.ssh/id_ed25519.pub
 ```
 
-### Generate a Caddy password hash (for Vite frontend)
-
-```bash
-docker run --rm caddy:2 caddy hash-password --plaintext 'YOUR_STRONG_PASSWORD'
-```
-
-Put the result into `.env`:
-
-```bash
-BASIC_AUTH_USER=aleksei
-BASIC_AUTH_HASH=$2a$14$...paste_hash_here...
-```
-
 ### Copy local opencode config
 
-If you want to copy your local opencode convig with auth keys (for example for opencode-antigravity-auth) - copy them with
+If you want to copy your local opencode config with auth keys (for example for opencode-antigravity-auth) - copy them with
 
 ```bash
 bash scripts/copy_opencode_config.sh
@@ -143,7 +127,8 @@ docker compose up -d --build
 ### Access
 
 * **SSH:** `ssh -p 2222 dev@localhost`
-* **Vite frontend:** http://localhost:8080 (requires Basic Auth and running dev server in the container in the port 5173) 
+* **Vite frontend:** http://localhost:5173 (requires running dev server in the container)
+* **OpenCode web UI:** http://localhost:4096 (if enabled)
 
 Stop:
 
@@ -180,72 +165,47 @@ Then:
 ssh opencode-local
 ```
 
-### SSH via Cloudflare Tunnel (Remote Access)
-
-1. **Add SSH hostname to your tunnel** in Cloudflare Zero Trust Dashboard:
-   * **Subdomain:** `ssh`
-   * **Domain:** `yourdomain.com`
-   * **Service Type:** `SSH`
-   * **URL:** `ohmyopencode:22`
-
-2. **Protect with Cloudflare Access** (recommended)
-
-3. **Configure SSH client:**
-   ```
-   Host ssh.yourdomain.com
-       HostName ssh.yourdomain.com
-       User dev
-       IdentityFile ~/.ssh/id_ed25519
-       ProxyCommand cloudflared access ssh --hostname %h
-   ```
-
-4. **Connect:** `ssh ssh.yourdomain.com`
-
 ---
 
-## 4) Set up Cloudflare Tunnel (recommended for global access)
+## 4) Remote Access via Tailscale
 
-This allows you to access SSH and the Vite frontend from anywhere without opening inbound ports.
+This setup is designed to run on a machine inside your Tailscale VPN.
 
-### Step 1: Create the Tunnel
+### Install Tailscale on Host
 
-1. Log in to the [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
-2. Navigate to **Networks** → **Tunnels**
-3. Click **Add a Tunnel** (or **Create a tunnel**)
-4. Choose **Cloudflared** and click **Next**
-5. Enter a **Tunnel name** (e.g., `dev-server`) and click **Save tunnel**
+1. Install: https://tailscale.com/download
+2. Authenticate: `tailscale up`
+3. Note your Tailscale IP: `tailscale ip -4`
 
-### Step 2: Get the Token
+### Access from Other Devices
 
-1. Under **Choose your environment**, select **Docker**
-2. Copy only the **token string** found after `--token` (long base64 string)
-3. Add to your `.env`:
-   ```bash
-   CF_TUNNEL_TOKEN=your_copied_token_here
-   ```
+Ensure your other devices (laptop, phone) are on the same Tailnet.
 
-### Step 3: Configure Public Hostnames
+**SSH:** `ssh -p 2222 dev@<tailscale-ip>`
+**Vite:** `http://<tailscale-ip>:5173`
 
-In the tunnel settings, go to **Public Hostname** tab and add:
+### SSH Config for Remote Access
 
-**For Vite frontend (dev web UI):**
-* **Subdomain:** `dev` (or `code`, `app`, etc.)
-* **Domain:** `yourdomain.com`
-* **Path:** (leave empty)
-* **Service Type:** `HTTP`
-* **URL:** `proxy:80`
+Add to `~/.ssh/config` on your laptop/other machines:
 
-**For SSH access:**
-* **Subdomain:** `ssh`
-* **Domain:** `yourdomain.com`
-* **Path:** (leave empty)
-* **Service Type:** `SSH`
-* **URL:** `ohmyopencode:22`
+```
+Host opencode
+    HostName 100.x.x.x  # Your Tailscale IP
+    Port 2222
+    User dev
+    IdentityFile ~/.ssh/id_ed25519
+```
 
-### Step 4: Access Globally
+Then connect: `ssh opencode`
 
-* **Vite frontend:** https://dev.yourdomain.com (with Basic Auth)
-* **SSH:** `ssh ssh.yourdomain.com` (requires `cloudflared` on client, see Section 3)
+**With MagicDNS enabled:**
+```
+Host opencode
+    HostName your-machine-name  # Your Tailscale MagicDNS hostname
+    Port 2222
+    User dev
+    IdentityFile ~/.ssh/id_ed25519
+```
 
 ---
 
@@ -253,7 +213,7 @@ In the tunnel settings, go to **Public Hostname** tab and add:
 
 ### Working via SSH
 
-1. Connect: `ssh opencode-local`
+1. Connect: `ssh opencode-local` (local) or `ssh opencode` (remote via Tailscale)
 2. Work in `/workspace/project` (your repo is mounted there)
 3. Run OpenCode CLI, use neovim, or any terminal tools
 
@@ -267,7 +227,9 @@ cd /workspace/project
 # pnpm dev --host 0.0.0.0
 ```
 
-The Vite frontend is now accessible at http://localhost:8080 and https://dev.yourdomain.com (with Basic Auth). 
+The Vite frontend is now accessible at:
+- Local: http://localhost:5173
+- Remote: http://<tailscale-ip>:5173
 
 ### Neovim and tmux
 
@@ -310,14 +272,14 @@ opencode run "/speckit.plan {describe technical plan and spec}"
 # Generate tasks
 opencode run "/speckit.tasks"
 
-# Execute tasks implementation withing Ralph Wiggum loop
+# Execute tasks implementation within Ralph Wiggum loop
 ralph.sh -i=<max-iterations>
 
 # Repeat from /speckit.specify
 ```
 
 
-**Optional Slak integration:**
+**Optional Slack integration:**
 
 If you want to get notifications on Ralph Wiggum iterations add Slack webhook URL to `RALPH_SLACK_WEBHOOK_URL` in `.env`
 
@@ -340,13 +302,22 @@ Feel free to fork and customize everything.
 ### Non-root containers
 
 * All containers run as user `dev` from the Dockerfile.
-* Proxy (Caddy) listens on port `5173` inside its container.
 
 ### Permissions for running shell commands
 
 This repo initializes OpenCode config with:
 
 * `"permission": { "bash": "ask" }`
+
+---
+
+## Exposed Ports Summary
+
+| Port | Service | Purpose |
+|------|---------|---------|
+| 2222 | SSH | Terminal access |
+| 5173 | Vite | Dev server (`pnpm dev --host 0.0.0.0`) |
+| 4096 | OpenCode | Web UI (optional) |
 
 ---
 
@@ -367,12 +338,7 @@ This repo initializes OpenCode config with:
 ### Vite frontend not loading
 
 * Ensure Vite is running with `--host 0.0.0.0`
-* Check proxy logs: `docker compose logs -f proxy`
-
-### Basic auth doesn't work
-
-* Confirm the hash is the output of `caddy hash-password`
-* Verify `.env` is loaded: `docker compose config | grep BASIC_AUTH`
+* Check container logs: `docker compose logs -f ohmyopencode`
 
 ---
 
@@ -394,6 +360,5 @@ This project is licensed under the terms of the MIT open source license. Please 
 
 * OpenCode CLI: [https://opencode.ai/docs/cli/](https://opencode.ai/docs/cli/)
 * Oh-My-OpenCode (npm): [https://www.npmjs.com/package/oh-my-opencode](https://www.npmjs.com/package/oh-my-opencode)
-* Caddy basic_auth: [https://caddyserver.com/docs/caddyfile/directives/basic_auth](https://caddyserver.com/docs/caddyfile/directives/basic_auth)
-* Cloudflare Tunnel: [https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-* Cloudflare SSH via Tunnel: [https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/)
+* Tailscale: [https://tailscale.com/](https://tailscale.com/)
+* Tailscale Download: [https://tailscale.com/download](https://tailscale.com/download)

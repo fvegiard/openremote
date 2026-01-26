@@ -1,28 +1,11 @@
 services:
-  # Reverse proxy w/ Basic Auth for Vite frontend
-  proxy:
-    image: caddy:2
-    ports:
-      - "${PUBLIC_HTTP_PORT:-8080}:80"
-    environment:
-      BASIC_AUTH_USER: "${BASIC_AUTH_USER}"
-      BASIC_AUTH_HASH: "${BASIC_AUTH_HASH}"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-    depends_on:
-      - ohmyopencode
-    networks:
-      - edge
-      - internal
-
-  # Dev container with SSH access and exposed vite dev frontend
+  # Dev container with SSH access and exposed ports for Tailscale VPN access
   ohmyopencode:
     build: .
     ports:
-      - "2222:22"  # SSH access
-      - "5173:5173" # Vite dev server
-    expose:
-      - "5173"     # Vite dev server (accessed via proxy, not exposed to host)
+      - "2222:22"    # SSH access
+      - "5173:5173"  # Vite dev server
+      - "4096:4096"  # OpenCode web UI
     environment:
       GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
@@ -44,21 +27,6 @@ services:
     volumes:
       - ./workspace:/workspace
     command: ["sleep", "infinity"]
-    networks:
-      - internal
-
-  # Optional: Cloudflare Tunnel (recommended: no public inbound ports)
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    profiles: ["tunnel"]
-    environment:
-      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
-    command: ["tunnel", "--protocol", "http2", "run"]
-    depends_on:
-      - proxy
-    networks:
-      - edge
-      - internal
 
   # Devcontainer helper (keeps a container alive for VS Code attachment)
   devcontainer:
@@ -67,14 +35,3 @@ services:
     command: ["sleep", "infinity"]
     volumes:
       - ./:/workspace
-    networks:
-      - internal
-
-networks:
-  edge: {}
-  internal:
-    # internal: true  <-- blocked internet access. Removed to allow outbound calls (plugins, LLMs).
-    driver: bridge
-
-volumes:
-  ohmyopencode-config: {}

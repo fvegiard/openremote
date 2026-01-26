@@ -6,6 +6,7 @@ services:
       - "2222:22"    # SSH access
       - "5173:5173"  # Vite dev server
       - "4096:4096"  # OpenCode web UI
+      - "18789:18789"  # clawd.bot gateway
     environment:
       GITHUB_REPO_URL: "${GITHUB_REPO_URL}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
@@ -26,6 +27,7 @@ services:
       RALPH_SLACK_WEBHOOK_URL: "${RALPH_SLACK_WEBHOOK_URL}"
     volumes:
       - ./workspace:/workspace
+      - dev_home:/home/dev
     command: ["sleep", "infinity"]
 
   # Devcontainer helper (keeps a container alive for VS Code attachment)
@@ -35,3 +37,6 @@ services:
     command: ["sleep", "infinity"]
     volumes:
       - ./:/workspace
+
+volumes:
+  dev_home:

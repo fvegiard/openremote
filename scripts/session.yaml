@@ -7,3 +7,6 @@ windows:
   - window_name: tui
     panes:
       - shell_command: opencode
+  - window_name: clawdbot
+    panes:
+      - shell_command: clawdbot gateway --port 18789 --verbose || echo "Run 'clawdbot onboard' first to configure"

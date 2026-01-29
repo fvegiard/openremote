@@ -20,13 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -s $(which fdfind) /usr/local/bin/fd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome for clawd.bot browser tool
-RUN curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o /tmp/chrome.deb && \
-    apt-get update && \
-    apt-get install -y /tmp/chrome.deb || apt-get install -fy && \
-    rm /tmp/chrome.deb && \
-    rm -rf /var/lib/apt/lists/*
-
 RUN curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh
 
 # Install tmuxp for session management
@@ -98,6 +91,11 @@ RUN (userdel -r node || true) && \
     mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
     chown -R ${UID}:${GID} /home/${USER}
 
+# Install Homebrew as non-root user (runs as 'dev' user)
+# Homebrew refuses to install as root, so we use sudo -u dev
+RUN sudo -u dev bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
+    echo 'eval "$(/home/dev/.linuxbrew/bin/brew shellenv)"' >> /home/dev/.bashrc
+
 # Copy configuration files (using wildcards to make them optional)
 COPY --chown=${UID}:${GID} opencode_config/auth.json* /home/${USER}/.local/share/opencode/
 COPY --chown=${UID}:${GID} opencode_config/antigravity-accounts.json* /home/${USER}/.config/opencode/
@@ -119,7 +117,7 @@ COPY scripts/session.yaml /scripts/session.yaml
 
 # Configure Bun and uv for the non-root user
 ENV BUN_INSTALL=/home/${USER}/.bun
-ENV PATH=${BUN_INSTALL}/bin:/home/${USER}/.local/bin:/home/${USER}/.clawdbot/bin:${PATH}
+ENV PATH=${BUN_INSTALL}/bin:/home/${USER}/.local/bin:/home/dev/.linuxbrew/bin:/home/dev/.linuxbrew/sbin:${PATH}
 
 # Pre-install oh-my-opencode with bun to ensure it's available and bun works
 # Run as user to install into user's home
@@ -128,17 +126,10 @@ RUN sudo -u ${USER} bash -c "export BUN_INSTALL=/home/${USER}/.bun && export PAT
 # Install spec-kit (specify-cli)
 RUN sudo -u ${USER} bash -c "export PATH=/home/${USER}/.local/bin:\$PATH && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git"
 
-# Install Playwright for clawd.bot browser tool
-RUN npm install -g playwright && \
-    npx playwright install-deps chromium
-
-# Install clawd.bot (requires Node 22+)
-RUN sudo -u ${USER} bash -c "curl -fsSL https://clawd.bot/install-cli.sh | bash"
-
 # Add PATH exports to .bashrc for SSH sessions (Docker ENV doesn't apply to SSH login shells)
-RUN echo 'export PATH="$HOME/.clawdbot/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"' >> /home/${USER}/.bashrc
+RUN echo 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"' >> /home/${USER}/.bashrc
 
-EXPOSE 4096 22 18789
+EXPOSE 4096 22
 
 ENTRYPOINT ["/usr/bin/tini","--","/usr/local/bin/entrypoint.sh"]
 CMD ["opencode-web"]

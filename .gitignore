@@ -56,8 +56,8 @@ share/
 *.tfstate
 *.tfstate.backup
 
-# Caddy
-caddy.out
+# cotainer dev user data
+home_dev/
 
 # Cloned Repositories (Workspace targets)
 workspace/

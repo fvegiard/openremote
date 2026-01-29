@@ -9,7 +9,6 @@ Features:
 - **Multi-Antigravity and Gemini accounts support** (via opencode-antigravity-auth)
 - **Github Spec Kit** support for Spec-Driven Development
 - **Ralph Wiggum Autonomous Loop** for /speckit.implement command
-- **clawd.bot gateway** for browser-based AI agent control (port 18789)
 - Designed for use behind **Tailscale VPN** for secure remote access
 
 > Goal: run on a home **PC/Mac** (Docker Desktop), connect from a laptop or phone via SSH through Tailscale VPN.
@@ -130,7 +129,6 @@ docker compose up -d --build
 * **SSH:** `ssh -p 2222 dev@localhost`
 * **Vite frontend:** http://localhost:5173 (requires running dev server in the container)
 * **OpenCode web UI:** http://localhost:4096 (if enabled)
-* **clawd.bot Control UI:** http://localhost:18789 (requires `clawdbot onboard` first)
 
 Stop:
 
@@ -248,7 +246,6 @@ docker compose up -d --build
 On container startup, a base tmux session `openremote` is automatically created with:
 - `opencode` window: OpenCode web UI (port 4096)
 - `tui` window: OpenCode TUI
-- `clawdbot` window: clawd.bot gateway (port 18789)
 
 If your project has a `session.yaml` in root (`/workspace/project/session.yaml`), it will also be loaded automatically. This allows project-specific tmux sessions.
 
@@ -306,44 +303,6 @@ ralph.sh -i=<max-iterations>
 
 If you want to get notifications on Ralph Wiggum iterations add Slack webhook URL to `RALPH_SLACK_WEBHOOK_URL` in `.env`
 
-### clawd.bot Gateway
-
-[clawd.bot](https://clawd.bot) provides a browser-based Control UI for managing AI coding agents.
-
-**First-time setup (after container build):**
-
-```bash
-ssh opencode-local
-clawdbot onboard
-```
-
-Follow the interactive prompts to configure your API keys and channels.
-
-**Optional: Enable Tailscale authentication:**
-
-Edit `~/.clawdbot/clawdbot.json` and set:
-```json
-{
-  "gateway": {
-    "auth": {
-      "allowTailscale": true
-    }
-  }
-}
-```
-
-Then restart the gateway window in tmux:
-```bash
-tmux attach -t openremote
-# Switch to clawdbot window (Ctrl-b 2) and restart
-```
-
-**Access the Control UI:**
-- Local: http://localhost:18789/
-- Remote: http://<tailscale-ip>:18789/
-
-The clawd.bot configuration persists in `/home/dev/.clawdbot/` via a Docker named volume.
-
 ---
 
 ## 6) VS Code Dev Container support
@@ -379,7 +338,6 @@ This repo initializes OpenCode config with:
 | 2222 | SSH | Terminal access |
 | 5173 | Vite | Dev server (`pnpm dev --host 0.0.0.0`) |
 | 4096 | OpenCode | Web UI (optional) |
-| 18789 | clawd.bot | Gateway and Control UI |
 
 ---
 
@@ -422,7 +380,5 @@ This project is licensed under the terms of the MIT open source license. Please 
 
 * OpenCode CLI: [https://opencode.ai/docs/cli/](https://opencode.ai/docs/cli/)
 * Oh-My-OpenCode (npm): [https://www.npmjs.com/package/oh-my-opencode](https://www.npmjs.com/package/oh-my-opencode)
-* clawd.bot: [https://clawd.bot/](https://clawd.bot/)
-* clawd.bot docs: [https://docs.clawd.bot/](https://docs.clawd.bot/)
 * Tailscale: [https://tailscale.com/](https://tailscale.com/)
 * Tailscale Download: [https://tailscale.com/download](https://tailscale.com/download)

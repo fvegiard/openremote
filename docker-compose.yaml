@@ -55,6 +55,14 @@ services:
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # NVIDIA GPU passthrough for faiss-gpu + future CUDA workloads
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: ["sleep", "infinity"]
 
   # Devcontainer helper (keeps a container alive for VS Code / Antigravity attachment)

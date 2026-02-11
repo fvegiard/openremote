@@ -23,10 +23,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh
 
 # Install tmuxp + vectorization + verification tools
+# NOTE: faiss-cpu via pip (faiss-gpu requires conda, see scripts/README)
+# GPU acceleration is via Ollama embeddings on RTX 5090
 RUN pip3 install --break-system-packages \
   tmuxp \
   PyPDF2 \
-  faiss-gpu \
+  faiss-cpu \
   requests \
   playwright \
   rich \
@@ -76,10 +78,9 @@ RUN corepack enable && \
   @prisma/language-server \
   && npm cache clean --force
 
-# Install OpenClaw (AI personal assistant — 185K ⭐)
-RUN curl -fsSL https://openclaw.ai/install | bash && \
-  mv /root/.openclaw/bin/openclaw /usr/local/bin/openclaw && \
-  chmod +x /usr/local/bin/openclaw
+# Install OpenClaw (AI personal assistant — npm package)
+# Note: openclaw.ai/install returns 404, using npm instead
+RUN npm install -g openclaw
 
 # Install Starship prompt (for Catppuccin theme from host mount)
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes && \
@@ -156,7 +157,8 @@ RUN sudo -u ${USER} bash -c "export PATH=/home/${USER}/.local/bin:\$PATH && uv t
 RUN sudo -u ${USER} bash /usr/local/bin/install-superpowers.sh
 
 # Install Playwright for clawd.bot browser tool
-RUN npm install -g playwright && \
+# --force needed because pip playwright already installs a binary
+RUN npm install -g --force playwright && \
   npx playwright install-deps chromium
 
 # Install clawd.bot (requires Node 22+)

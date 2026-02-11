@@ -69,6 +69,15 @@ RUN corepack enable && \
   @prisma/language-server \
   && npm cache clean --force
 
+# Install OpenClaw (AI personal assistant — 185K ⭐)
+RUN curl -fsSL https://openclaw.ai/install | bash && \
+  mv /root/.openclaw/bin/openclaw /usr/local/bin/openclaw && \
+  chmod +x /usr/local/bin/openclaw
+
+# Install Starship prompt (for Catppuccin theme from host mount)
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes && \
+  echo 'eval "$(starship init bash)"' >> /etc/bash.bashrc
+
 # Install ttyd (web terminal) as a static binary
 RUN set -eux; \
   case "$TARGETARCH" in \
@@ -88,7 +97,10 @@ RUN (userdel -r node || true) && \
   echo "${USER}:lena" | chpasswd && \
   usermod -aG sudo ${USER} && \
   echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-  mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
+  mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode \
+  /home/${USER}/.ssh /home/${USER}/.gemini/antigravity/knowledge \
+  /home/${USER}/.gemini/skills /home/${USER}/.gemini/extensions && \
+  chmod 700 /home/${USER}/.ssh && \
   chown -R ${UID}:${GID} /home/${USER}
 
 # Install Homebrew as non-root user
@@ -134,8 +146,9 @@ RUN npm install -g playwright && \
 # Install clawd.bot (requires Node 22+)
 RUN sudo -u ${USER} bash -c "curl -fsSL https://clawd.bot/install-cli.sh | bash"
 # Add PATH exports to .bashrc for SSH sessions (Docker ENV doesn't apply to SSH login shells)
-RUN echo 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"' >> /home/${USER}/.bashrc && \\
-  echo 'export TERM=xterm-256color' >> /home/${USER}/.bashrc
+RUN echo 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"' >> /home/${USER}/.bashrc && \
+  echo 'export TERM=xterm-256color' >> /home/${USER}/.bashrc && \
+  echo 'eval "$(starship init bash)"' >> /home/${USER}/.bashrc
 
 # Ports: SSH=2222(mapped) | OpenCode Web=4096 | Vite=5173 | SSH internal=22
 EXPOSE 4096 22 5173 18789

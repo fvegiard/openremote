@@ -23,14 +23,36 @@ services:
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
       # Ollama (local GPU on host)
       OLLAMA_HOST: "http://host.docker.internal:11434"
-      # MCP keys
+      # MCP & Integrations
       CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
+      NETLIFY_AUTH_TOKEN: "${NETLIFY_AUTH_TOKEN}"
+      SUPABASE_ACCESS_TOKEN: "${SUPABASE_ACCESS_TOKEN}"
       # SSH Access
       SSH_PUBLIC_KEY: "${SSH_PUBLIC_KEY}"
       RALPH_SLACK_WEBHOOK_URL: "${RALPH_SLACK_WEBHOOK_URL}"
     volumes:
+      # Workspace
       - ./workspace:/workspace
       - lena_home:/home/lena
+
+      # ── Host persona & knowledge (READ-ONLY mounts) ──────
+      # SSH keys (for git push/pull inside container)
+      - ~/.ssh/id_ed25519:/home/lena/.ssh/id_ed25519:ro
+      - ~/.ssh/id_ed25519.pub:/home/lena/.ssh/id_ed25519.pub:ro
+      - ~/.ssh/config:/home/lena/.ssh/config:ro
+
+      # Git identity
+      - ~/.gitconfig:/home/lena/.gitconfig:ro
+
+      # Gemini knowledge base
+      - ~/.gemini/antigravity/knowledge:/home/lena/.gemini/antigravity/knowledge:ro
+
+      # Gemini persona (NO hooks, NO settings.json, NO extensions)
+      - ~/.gemini/GEMINI.md:/home/lena/.gemini/GEMINI.md:ro
+
+      # Starship prompt theme
+      - ~/.config/starship.toml:/home/lena/.config/starship.toml:ro
+
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ["sleep", "infinity"]

@@ -22,8 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh
 
-# Install tmuxp for session management
-RUN pip3 install --break-system-packages tmuxp
+# Install tmuxp + vectorization + verification tools
+RUN pip3 install --break-system-packages \
+  tmuxp \
+  PyPDF2 \
+  faiss-gpu \
+  requests \
+  playwright \
+  rich \
+  httpx
 
 # Install Neovim (nightly has ARM64 support, stable doesn't)
 RUN set -eux; \
@@ -115,6 +122,15 @@ COPY --chown=${UID}:${GID} opencode_config/opencode.json* /home/${USER}/.config/
 
 # Copy nvim config if present (run scripts/copy_nvim_config.sh first to populate)
 COPY --chown=${UID}:${GID} dotfiles/nvim/ /home/${USER}/.config/nvim/
+
+# Copy documentation PDFs for vectorization
+COPY --chown=${UID}:${GID} docs/ /home/${USER}/docs/
+
+# Copy vectordb index (if pre-built)
+COPY --chown=${UID}:${GID} vectordb/ /home/${USER}/vectordb/
+
+# Copy MCP reference code (read-only inspection)
+COPY --chown=${UID}:${GID} mcp_reference/ /home/${USER}/mcp_reference/
 
 WORKDIR /workspace
 

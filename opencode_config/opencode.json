@@ -1,0 +1,108 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "server": {
+    "hostname": "0.0.0.0",
+    "port": 4096,
+    "mdns": false,
+    "cors": []
+  },
+  "plugin": [
+    "oh-my-opencode@latest",
+    "opencode-antigravity-auth@1.5.0",
+    "@tarquinen/opencode-dcp@latest"
+  ],
+  "default_agent": "sisyphus",
+  "permission": {
+    "bash": "allow"
+  },
+  "provider": {
+    "google": {
+      "name": "Google",
+      "models": {
+        "antigravity-gemini-3-pro": {
+          "name": "Gemini 3 Pro (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": {
+            "low": { "thinkingLevel": "low" },
+            "high": { "thinkingLevel": "high" }
+          }
+        },
+        "antigravity-gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": {
+            "minimal": { "thinkingLevel": "minimal" },
+            "low": { "thinkingLevel": "low" },
+            "medium": { "thinkingLevel": "medium" },
+            "high": { "thinkingLevel": "high" }
+          }
+        },
+        "antigravity-claude-sonnet-4-5": {
+          "name": "Claude Sonnet 4.5 (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+        },
+        "antigravity-claude-sonnet-4-5-thinking": {
+          "name": "Claude Sonnet 4.5 Thinking (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": {
+            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
+            "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
+          }
+        },
+        "antigravity-claude-opus-4-5-thinking": {
+          "name": "Claude Opus 4.5 Thinking (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": {
+            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
+            "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
+          }
+        }
+      }
+    },
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (Local RTX 5090)",
+      "options": {
+        "baseURL": "http://host.docker.internal:11434/v1"
+      },
+      "models": {
+        "qwen3-coder:latest": {
+          "name": "Qwen3 Coder (local GPU)",
+          "limit": { "context": 131072, "output": 32768 }
+        },
+        "qwen3-vl:32b": {
+          "name": "Qwen3 VL 32B Vision (local GPU)",
+          "limit": { "context": 131072, "output": 32768 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "glm-4.7-flash:latest": {
+          "name": "GLM 4.7 Flash (local GPU)",
+          "limit": { "context": 131072, "output": 32768 }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "lena-docs": {
+      "type": "local",
+      "command": "python3",
+      "args": ["/home/lena/scripts/mcp_vector_search.py"],
+      "env": {
+        "OLLAMA_HOST": "http://host.docker.internal:11434",
+        "EMBED_MODEL": "qwen3-embedding:8b"
+      }
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      }
+    }
+  }
+}

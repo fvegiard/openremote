@@ -61,6 +61,10 @@ home_dev/
 
 # Cloned Repositories (Workspace targets)
 workspace/
-# opencode config 
-opencode_config/
+# opencode config (tracked — needed for container)
+# opencode_config/
+
+# Large generated files
+vectordb/docs_vectors.json
+docs/
 # Add other cloned repo names below if you change GITHUB_REPO_URL

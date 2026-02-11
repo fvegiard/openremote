@@ -1,7 +1,9 @@
 services:
-  # Dev container with SSH access and exposed ports for Tailscale VPN access
-  ohmyopencode:
+  # ── Lena — Autonomous AI Dev Container ────────────────────
+  lena:
     build: .
+    container_name: lena
+    hostname: lena
     ports:
       - "2222:22"    # SSH access
       - "5173:5173"  # Vite dev server
@@ -19,6 +21,8 @@ services:
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
+      # Ollama (local GPU on host)
+      OLLAMA_HOST: "http://host.docker.internal:11434"
       # MCP keys
       CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
       # SSH Access
@@ -26,10 +30,12 @@ services:
       RALPH_SLACK_WEBHOOK_URL: "${RALPH_SLACK_WEBHOOK_URL}"
     volumes:
       - ./workspace:/workspace
-      - dev_home:/home/dev
+      - lena_home:/home/lena
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ["sleep", "infinity"]
 
-  # Devcontainer helper (keeps a container alive for VS Code attachment)
+  # Devcontainer helper (keeps a container alive for VS Code / Antigravity attachment)
   devcontainer:
     build: .
     profiles: ["devcontainer"]
@@ -38,4 +44,4 @@ services:
       - ./:/workspace
 
 volumes:
-  dev_home:
+  lena_home:

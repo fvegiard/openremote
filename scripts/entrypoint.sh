@@ -13,8 +13,8 @@ if [ "$(id -u)" = "0" ]; then
     /usr/sbin/sshd
 
     # Re-exec the script as the 'dev' user
-    echo "Switching to user 'dev'..."
-    exec sudo -E -u dev HOME=/home/dev "$0" "$@"
+    echo "Switching to user 'lena'..."
+    exec sudo -E -u lena HOME=/home/lena "$0" "$@"
 fi
 
 # Defaults

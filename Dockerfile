@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 FROM node:24-bookworm-slim
 
-ARG USER=dev
+ARG USER=lena
 ARG UID=1000
 ARG GID=1000
 ARG TTYD_VERSION=1.7.7
@@ -10,15 +10,15 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git openssh-client openssh-server sudo bash zsh tini \
-      ripgrep jq unzip zip \
-      python3 python3-venv python3-pip make g++ \
-      tmux \
-      liblua5.1-0-dev \
-      fd-find fzf luarocks \
-      dbus-user-session \
-    && ln -s $(which fdfind) /usr/local/bin/fd \
-    && rm -rf /var/lib/apt/lists/*
+  ca-certificates curl git openssh-client openssh-server sudo bash zsh tini \
+  ripgrep jq unzip zip \
+  python3 python3-venv python3-pip python3-dev make g++ cmake \
+  tmux \
+  liblua5.1-0-dev \
+  fd-find fzf luarocks \
+  dbus-user-session \
+  && ln -s $(which fdfind) /usr/local/bin/fd \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh
 
@@ -28,9 +28,9 @@ RUN pip3 install --break-system-packages tmuxp
 # Install Neovim (nightly has ARM64 support, stable doesn't)
 RUN set -eux; \
   case "$TARGETARCH" in \
-    amd64) NVIM_ARCH="linux-x86_64" ;; \
-    arm64) NVIM_ARCH="linux-arm64" ;; \
-    *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
+  amd64) NVIM_ARCH="linux-x86_64" ;; \
+  arm64) NVIM_ARCH="linux-arm64" ;; \
+  *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
   esac; \
   curl -fsSL -o /tmp/nvim.tar.gz "https://github.com/neovim/neovim/releases/download/nightly/nvim-${NVIM_ARCH}.tar.gz"; \
   tar -xzf /tmp/nvim.tar.gz -C /opt; \
@@ -44,37 +44,37 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 # Install Bun (globally for the binary)
 # We use a temporary env var so it doesn't persist as /usr/local for the user
 RUN export BUN_INSTALL=/usr/local && \
-    curl -fsSL https://bun.sh/install | bash
+  curl -fsSL https://bun.sh/install | bash
 
 # Install OpenCode (binary via official installer)
 # The installer puts it in $HOME/.opencode/bin. Since we run as root, that's /root/.opencode/bin.
 # We move it to /usr/local/bin so it's globally available.
 RUN curl -fsSL https://opencode.ai/install | bash && \
-    mv /root/.opencode/bin/opencode /usr/local/bin/opencode && \
-    chmod +x /usr/local/bin/opencode
+  mv /root/.opencode/bin/opencode /usr/local/bin/opencode && \
+  chmod +x /usr/local/bin/opencode
 
 # Install Oh-My-OpenCode (Agent Harness) + common language servers for TanStack (TypeScript/React)
 RUN corepack enable && \
-    npm install -g \
-      oh-my-opencode \
-      tree-sitter-cli \
-      typescript \
-      typescript-language-server \
-      vscode-langservers-extracted \
-      @tailwindcss/language-server \
-      yaml-language-server \
-      bash-language-server \
-      dockerfile-language-server-nodejs \
-      graphql-language-service-cli \
-      @prisma/language-server \
-    && npm cache clean --force
+  npm install -g \
+  oh-my-opencode \
+  tree-sitter-cli \
+  typescript \
+  typescript-language-server \
+  vscode-langservers-extracted \
+  @tailwindcss/language-server \
+  yaml-language-server \
+  bash-language-server \
+  dockerfile-language-server-nodejs \
+  graphql-language-service-cli \
+  @prisma/language-server \
+  && npm cache clean --force
 
 # Install ttyd (web terminal) as a static binary
 RUN set -eux; \
   case "$TARGETARCH" in \
-    amd64) T="x86_64" ;; \
-    arm64) T="aarch64" ;; \
-    *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
+  amd64) T="x86_64" ;; \
+  arm64) T="aarch64" ;; \
+  *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
   esac; \
   curl -fsSL -o /usr/local/bin/ttyd "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${T}"; \
   chmod +x /usr/local/bin/ttyd; \
@@ -82,19 +82,18 @@ RUN set -eux; \
 
 # Create non-root user (safely handling potential conflicts)
 RUN (userdel -r node || true) && \
-    (groupdel node || true) && \
-    groupadd --gid ${GID} ${USER} && \
-    useradd --uid ${UID} --gid ${GID} -m -s /bin/bash ${USER} && \
-    echo "${USER}:opencode" | chpasswd && \
-    usermod -aG sudo ${USER} && \
-    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
-    chown -R ${UID}:${GID} /home/${USER}
+  (groupdel node || true) && \
+  groupadd --gid ${GID} ${USER} && \
+  useradd --uid ${UID} --gid ${GID} -m -s /bin/bash ${USER} && \
+  echo "${USER}:lena" | chpasswd && \
+  usermod -aG sudo ${USER} && \
+  echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+  mkdir -p /home/${USER}/.config/opencode /home/${USER}/.local/share/opencode && \
+  chown -R ${UID}:${GID} /home/${USER}
 
-# Install Homebrew as non-root user (runs as 'dev' user)
-# Homebrew refuses to install as root, so we use sudo -u dev
-RUN sudo -u dev bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
-    echo 'eval "$(/home/dev/.linuxbrew/bin/brew shellenv)"' >> /home/dev/.bashrc
+# Install Homebrew as non-root user
+RUN sudo -u ${USER} bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
+  echo 'eval "$(/home/${USER}/.linuxbrew/bin/brew shellenv)"' >> /home/${USER}/.bashrc
 
 # Copy configuration files (using wildcards to make them optional)
 COPY --chown=${UID}:${GID} opencode_config/auth.json* /home/${USER}/.local/share/opencode/
@@ -117,7 +116,7 @@ COPY scripts/session.yaml /scripts/session.yaml
 
 # Configure Bun and uv for the non-root user
 ENV BUN_INSTALL=/home/${USER}/.bun
-ENV PATH=${BUN_INSTALL}/bin:/home/${USER}/.local/bin:/home/dev/.linuxbrew/bin:/home/dev/.linuxbrew/sbin:${PATH}
+ENV PATH=${BUN_INSTALL}/bin:/home/${USER}/.local/bin:/home/${USER}/.linuxbrew/bin:/home/${USER}/.linuxbrew/sbin:${PATH}
 
 # Pre-install oh-my-opencode with bun to ensure it's available and bun works
 # Run as user to install into user's home
@@ -130,14 +129,16 @@ RUN sudo -u ${USER} bash /usr/local/bin/install-superpowers.sh
 
 # Install Playwright for clawd.bot browser tool
 RUN npm install -g playwright && \
-    npx playwright install-deps chromium
+  npx playwright install-deps chromium
 
 # Install clawd.bot (requires Node 22+)
 RUN sudo -u ${USER} bash -c "curl -fsSL https://clawd.bot/install-cli.sh | bash"
 # Add PATH exports to .bashrc for SSH sessions (Docker ENV doesn't apply to SSH login shells)
-RUN echo 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"' >> /home/${USER}/.bashrc
+RUN echo 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"' >> /home/${USER}/.bashrc && \\
+  echo 'export TERM=xterm-256color' >> /home/${USER}/.bashrc
 
-EXPOSE 4096 22 18789
+# Ports: SSH=2222(mapped) | OpenCode Web=4096 | Vite=5173 | SSH internal=22
+EXPOSE 4096 22 5173 18789
 
 ENTRYPOINT ["/usr/bin/tini","--","/usr/local/bin/entrypoint.sh"]
 CMD ["opencode-web"]

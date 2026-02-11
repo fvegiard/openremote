@@ -1,4 +1,4 @@
-session_name: openremote
+session_name: lena
 start_directory: /workspace/project
 windows:
   - window_name: opencode
